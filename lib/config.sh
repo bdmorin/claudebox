@@ -130,7 +130,10 @@ read_profile_section() {
         done < <(sed -n "/^\[$section\]/,/^\[/p" "$profile_file" | tail -n +2 | grep -v '^\[')
     fi
 
-    printf '%s\n' "${result[@]}"
+    # Safe array printing (Bash 3.2 + set -u compatible)
+    if [[ ${#result[@]} -gt 0 ]]; then
+        printf '%s\n' "${result[@]}"
+    fi
 }
 
 update_profile_section() {
@@ -139,8 +142,11 @@ update_profile_section() {
     shift 2
     local new_items=("$@")
 
+    # Bash 3.2 compatible alternative to readarray
     local existing_items=()
-    readarray -t existing_items < <(read_profile_section "$profile_file" "$section")
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && existing_items+=("$line")
+    done < <(read_profile_section "$profile_file" "$section")
 
     local all_items=()
     if [[ ${#existing_items[@]} -gt 0 ]]; then
@@ -187,14 +193,17 @@ update_profile_section() {
 get_current_profiles() {
     local profiles_file="${PROJECT_PARENT_DIR:-$HOME/.claudebox/projects/$(generate_parent_folder_name "$PWD")}/profiles.ini"
     local current_profiles=()
-    
+
     if [[ -f "$profiles_file" ]]; then
         while IFS= read -r line; do
             [[ -n "$line" ]] && current_profiles+=("$line")
         done < <(read_profile_section "$profiles_file" "profiles")
     fi
-    
-    printf '%s\n' "${current_profiles[@]}"
+
+    # Safe array printing (Bash 3.2 + set -u compatible)
+    if [[ ${#current_profiles[@]} -gt 0 ]]; then
+        printf '%s\n' "${current_profiles[@]}"
+    fi
 }
 
 # -------- Profile installation functions for Docker builds -------------------
