@@ -1,0 +1,43 @@
+# Pre-commit hooks for ClaudeBox
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: local
+    hooks:
+      # ShellCheck - Bash linting
+      - id: shellcheck
+        name: ShellCheck
+        entry: shellcheck
+        language: system
+        types: [shell]
+        files: \.(sh|bash)$
+        args: []
+
+      # Bats - Run tests
+      - id: bats
+        name: Bats Tests
+        entry: bash -c 'if command -v bats >/dev/null 2>&1; then make test-bats; else echo "⚠️  Bats not installed - skipping tests"; fi'
+        language: system
+        pass_filenames: false
+        files: \.(sh|bash|bats)$
+
+      # Trailing whitespace
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+        entry: bash -c 'git diff --cached --name-only --diff-filter=ACM | xargs -r sed -i "" "s/[[:space:]]*$//"'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ['--fix=lf']

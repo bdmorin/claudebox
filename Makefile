@@ -1,4 +1,4 @@
-.PHONY: help shellcheck test clean
+.PHONY: help shellcheck test test-bats test-all clean install-hooks
 
 # Default target
 .DEFAULT_GOAL := help
@@ -34,8 +34,36 @@ shellcheck: ## Run shellcheck on all bash scripts
 	@shellcheck build/docker-entrypoint build/init-firewall build/generate-tools-readme 2>/dev/null || true
 	@echo "$(GREEN)✓ ShellCheck passed!$(NC)"
 
-test: shellcheck ## Run all tests (currently just shellcheck)
+test-bats: ## Run Bats tests
+	@echo "$(CYAN)Running Bats tests...$(NC)"
+	@if ! command -v bats >/dev/null 2>&1; then \
+		echo "$(RED)ERROR: bats not installed$(NC)"; \
+		echo "Install with:"; \
+		echo "  macOS: brew install bats-core"; \
+		echo "  Ubuntu/Debian: apt-get install bats"; \
+		exit 1; \
+	fi
+	@bats test/*.bats || exit 1
+	@echo "$(GREEN)✓ Bats tests passed!$(NC)"
+
+test: shellcheck ## Run shellcheck only (fast)
+	@echo "$(GREEN)✓ ShellCheck passed!$(NC)"
+
+test-all: shellcheck test-bats ## Run all tests (shellcheck + bats)
 	@echo "$(GREEN)✓ All tests passed!$(NC)"
+
+install-hooks: ## Install pre-commit hooks
+	@echo "$(CYAN)Installing pre-commit hooks...$(NC)"
+	@if ! command -v pre-commit >/dev/null 2>&1; then \
+		echo "$(RED)ERROR: pre-commit not installed$(NC)"; \
+		echo "Install with:"; \
+		echo "  pip install pre-commit"; \
+		echo "  or: brew install pre-commit"; \
+		exit 1; \
+	fi
+	@pre-commit install
+	@echo "$(GREEN)✓ Pre-commit hooks installed!$(NC)"
+	@echo "Run manually with: pre-commit run --all-files"
 
 clean: ## Clean temporary files
 	@echo "$(CYAN)Cleaning temporary files...$(NC)"
