@@ -16,8 +16,8 @@ The Ultimate Claude Code Docker Development Environment - Run Claude AI's coding
 
 ██████╗  ██████╗ ██╗  ██╗
 ██╔══██╗██╔═══██╗╚██╗██╔╝
-██████╔╝██║   ██║ ╚███╔╝ 
-██╔══██╗██║   ██║ ██╔██╗ 
+██████╔╝██║   ██║ ╚███╔╝
+██╔══██╗██║   ██║ ██╔██╗
 ██████╔╝╚██████╔╝██╔╝ ██╗
 ╚═════╝  ╚═════╝ ╚═╝  ╚═╝
 ```
@@ -289,7 +289,7 @@ claudebox tmux
 
 # Use tmux commands inside the container:
 # - Create new panes: Ctrl+b % (vertical) or Ctrl+b " (horizontal)
-# - Switch panes: Ctrl+b arrow-keys  
+# - Switch panes: Ctrl+b arrow-keys
 # - Create new windows: Ctrl+b c
 # - Switch windows: Ctrl+b n/p or Ctrl+b 0-9
 ```
@@ -392,9 +392,82 @@ ClaudeBox creates a per-project Debian-based Docker image with:
 - Profile-specific development tools with intelligent layer caching
 - Persistent project state (auth, history, configs)
 
+## 🧪 Development and Testing
+
+ClaudeBox uses a comprehensive testing framework to ensure quality and compatibility:
+
+### Prerequisites for Development
+
+```bash
+# Install Bats testing framework
+# macOS
+brew install bats-core
+
+# Linux (Debian/Ubuntu)
+sudo apt-get install bats
+
+# Install pre-commit hooks
+pip install pre-commit
+# or
+brew install pre-commit
+```
+
+### Setting Up Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/RchGrav/claudebox.git
+cd claudebox
+
+# Install pre-commit hooks (runs tests before commits)
+pre-commit install
+
+# Run tests manually
+make test-bats
+
+# Run shellcheck linting
+make shellcheck
+```
+
+### Testing Framework
+
+ClaudeBox includes:
+- **Bats Tests**: Comprehensive unit tests for all functions
+- **Array Safety Tests**: Ensures Bash 3.2 compatibility with `set -u`
+- **Configuration Tests**: Validates profile and config management
+- **Pre-commit Hooks**: Automatic validation before commits
+
+### Running Tests
+
+```bash
+# Run all tests
+make test-bats
+
+# Run specific test file
+bats test/array_safety.bats
+bats test/config_functions.bats
+
+# Verbose output
+bats --verbose test/array_safety.bats
+```
+
+### Code Quality Standards
+
+- **Bash 3.2 Compatible**: All code must work on macOS default shell
+- **Strict Mode**: Uses `set -euo pipefail` for safety
+- **Array Safety**: Empty arrays must be checked before iteration
+- **ShellCheck Clean**: All code passes shellcheck validation
+- **Test Coverage**: New features require corresponding tests
+
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Install pre-commit hooks (`pre-commit install`)
+4. Write tests for new functionality
+5. Ensure all tests pass (`make test-bats`)
+6. Submit a Pull Request
 
 ## 📝 License
 
@@ -474,5 +547,5 @@ Made with ❤️ for developers who love clean, reproducible environments
 
 ## Contact
 
-**Author/Maintainer:** RchGrav  
+**Author/Maintainer:** RchGrav
 **GitHub:** [@RchGrav](https://github.com/RchGrav)
