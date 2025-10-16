@@ -57,19 +57,22 @@ parse_cli_args() {
 
 # Process host-only flags and set environment variables
 process_host_flags() {
-    for flag in "${CLI_HOST_FLAGS[@]}"; do
-        case "$flag" in
-            --verbose)
-                export VERBOSE=true
-                ;;
-            rebuild)
-                export REBUILD=true
-                ;;
-            tmux)
-                export CLAUDEBOX_WRAP_TMUX=true
-                ;;
-        esac
-    done
+    # Only iterate if array has elements (Bash 3.2 + set -u compatibility)
+    if [[ ${#CLI_HOST_FLAGS[@]} -gt 0 ]]; then
+        for flag in "${CLI_HOST_FLAGS[@]}"; do
+            case "$flag" in
+                --verbose)
+                    export VERBOSE=true
+                    ;;
+                rebuild)
+                    export REBUILD=true
+                    ;;
+                tmux)
+                    export CLAUDEBOX_WRAP_TMUX=true
+                    ;;
+            esac
+        done
+    fi
 }
 
 # Get command requirements - returns one of:

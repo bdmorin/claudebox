@@ -296,11 +296,14 @@ run_claudebox_container() {
     # Set up cleanup trap for temporary MCP config files
     cleanup_mcp_files() {
         local file
-        for file in "${mcp_temp_files[@]}"; do
-            if [[ -f "$file" ]]; then
-                rm -f "$file"
-            fi
-        done
+        # Only iterate if array has elements (Bash 3.2 + set -u compatibility)
+        if [[ ${#mcp_temp_files[@]} -gt 0 ]]; then
+            for file in "${mcp_temp_files[@]}"; do
+                if [[ -f "$file" ]]; then
+                    rm -f "$file"
+                fi
+            done
+        fi
         if [[ -n "$user_mcp_file" ]] && [[ -f "$user_mcp_file" ]]; then
             rm -f "$user_mcp_file"
         fi

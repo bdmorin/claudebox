@@ -1,0 +1,16 @@
+# ShellCheck configuration for ClaudeBox
+# Bash 3.2 compatibility enforced
+
+# Exclude rules that conflict with Bash 3.2 or project style
+disable=SC2155  # Declare and assign separately to avoid masking return values (conflicts with project style)
+disable=SC2046  # Quote this to prevent word splitting (false positives with controlled splitting)
+disable=SC2086  # Quote variables to prevent word splitting (intentional in some cases)
+
+# Enable all other warnings
+enable=all
+
+# Shell directive
+shell=bash
+
+# External sources (for sourcing lib files)
+external-sources=true

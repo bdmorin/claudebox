@@ -726,11 +726,14 @@ _cmd_project() {
     else
         # Multiple matches - show them
         error "Multiple projects match '$search':"
-        for match in "${matches[@]}"; do
-            local path="${match%%|*}"
-            local name="${match##*|}"
-            echo "  $name -> $path"
-        done
+        # Only iterate if array has elements (Bash 3.2 + set -u compatibility)
+        if [[ ${#matches[@]} -gt 0 ]]; then
+            for match in "${matches[@]}"; do
+                local path="${match%%|*}"
+                local name="${match##*|}"
+                echo "  $name -> $path"
+            done
+        fi
         echo
         echo "Please be more specific."
     fi
@@ -813,10 +816,13 @@ _cmd_import() {
     cecho "Available commands to import:" "$CYAN"
     echo
     local i=1
-    for cmd in "${commands[@]}"; do
-        printf "  %2d. %s\n" "$i" "$cmd"
-        ((i++)) || true
-    done
+    # Only iterate if array has elements (Bash 3.2 + set -u compatibility)
+    if [[ ${#commands[@]} -gt 0 ]]; then
+        for cmd in "${commands[@]}"; do
+            printf "  %2d. %s\n" "$i" "$cmd"
+            ((i++)) || true
+        done
+    fi
     echo
     printf "  %2s. %s\n" "a" "Import all commands"
     echo
@@ -832,11 +838,14 @@ _cmd_import() {
         a|A|all|ALL)
             # Import all commands
             local imported=0
-            for cmd in "${commands[@]}"; do
-                if cp "$host_commands/$cmd" "$project_commands/"; then
-                    ((imported++)) || true
-                fi
-            done
+            # Only iterate if array has elements (Bash 3.2 + set -u compatibility)
+            if [[ ${#commands[@]} -gt 0 ]]; then
+                for cmd in "${commands[@]}"; do
+                    if cp "$host_commands/$cmd" "$project_commands/"; then
+                        ((imported++)) || true
+                    fi
+                done
+            fi
             success "✓ Imported $imported command(s) to project"
             ;;
         [0-9]*)
