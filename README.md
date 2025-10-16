@@ -392,6 +392,90 @@ ClaudeBox creates a per-project Debian-based Docker image with:
 - Profile-specific development tools with intelligent layer caching
 - Persistent project state (auth, history, configs)
 
+## 🔒 Security
+
+ClaudeBox implements comprehensive security measures to protect against supply chain attacks and code injection:
+
+### Security Scanning
+
+Continuous automated security scanning:
+
+- **ShellCheck**: Static analysis on every commit for bash security issues
+- **Trivy**: Daily container vulnerability scanning (CVEs, misconfigurations, secrets)
+- **TruffleHog**: Weekly secret scanning with credential verification
+- **Pre-commit Hooks**: Local security validation before code is committed
+
+### Supply Chain Security
+
+Protection against supply chain compromises:
+
+- **SBOM Generation**: Software Bill of Materials for full transparency
+- **Package Verification**: GPG signature verification for apt packages
+- **Checksum Validation**: All downloaded binaries verified
+- **Official Sources Only**: All packages from trusted repositories
+
+### Container Security
+
+Docker image hardening:
+
+- **Base Image Scanning**: Debian images scanned for known CVEs
+- **Layer Analysis**: Each Docker layer analyzed for vulnerabilities
+- **Regular Updates**: Automated security patches applied
+- **Minimal Attack Surface**: Only necessary packages installed
+
+### Code Security
+
+Safe coding practices enforced:
+
+- **Input Validation**: All external input validated and sanitized
+- **No eval with user input**: Strict prohibition on dangerous patterns
+- **Quoted Variables**: All bash variables properly quoted
+- **Template Safety**: Validated substitution in Dockerfiles
+
+### Network Security
+
+Container network isolation:
+
+- **Firewall by Default**: Network access restricted by allowlist
+- **Project-Specific Rules**: Each project has its own allowlist
+- **No Sudo by Default**: Elevated privileges disabled unless explicitly enabled
+- **Audit Logging**: Network access attempts logged
+
+### API Key Protection
+
+Credential security:
+
+- **No Keys in Code**: API keys never committed to version control
+- **Environment Variables**: Secure credential management
+- **Git History Scanning**: Automated detection of leaked secrets
+- **Pre-commit Validation**: Keys blocked before commit
+
+### Vulnerability Disclosure
+
+We take security seriously. If you discover a vulnerability:
+
+- **Report privately** via [GitHub Security Advisories](https://github.com/bdmorin/claudebox/security/advisories)
+- **Response within 48 hours**
+- See our [Security Policy](SECURITY.md) for full details
+
+### Security Best Practices for Users
+
+```bash
+# ✅ Use firewall (default)
+claudebox
+
+# ⚠️  Only if absolutely necessary
+claudebox --enable-sudo --disable-firewall
+
+# ✅ Keep ClaudeBox updated
+claudebox update
+
+# ✅ Review network allowlist
+claudebox allowlist
+```
+
+For detailed security information, see [SECURITY.md](SECURITY.md).
+
 ## 🧪 Development and Testing
 
 ClaudeBox uses a comprehensive testing framework to ensure quality and compatibility:

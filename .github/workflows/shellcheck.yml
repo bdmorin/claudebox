@@ -1,0 +1,38 @@
+name: ShellCheck Security Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly on Mondays at 2 AM UTC
+    - cron: '0 2 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  shellcheck:
+    name: ShellCheck Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          format: gcc
+          scandir: '.'
+          check_together: 'yes'
+          ignore_paths: test .builder
+
+      - name: Upload ShellCheck results
+        if: failure()
+        run: |
+          printf "ShellCheck found issues. Please review the output above.\n"
+          exit 1

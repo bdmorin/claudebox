@@ -1,0 +1,90 @@
+name: Trivy Container Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run daily at 3 AM UTC to catch new CVEs
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-dockerfile:
+    name: Trivy Dockerfile Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy on Dockerfile template
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: 'templates/Dockerfile.template'
+          format: 'sarif'
+          output: 'trivy-dockerfile.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Dockerfile scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-dockerfile.sarif'
+          category: 'trivy-dockerfile'
+
+  trivy-image:
+    name: Trivy Image Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build test image
+        run: |
+          # Create a minimal test Dockerfile from template
+          cp templates/Dockerfile.template Dockerfile.test
+          sed -i 's/{{BASE_IMAGE}}/debian:bookworm-slim/g' Dockerfile.test
+          sed -i 's/{{USER_ID}}/1000/g' Dockerfile.test
+          sed -i 's/{{GROUP_ID}}/1000/g' Dockerfile.test
+          sed -i 's/{{NODE_VERSION}}/20/g' Dockerfile.test
+          sed -i 's/{{PROFILE_INSTALLATIONS}}//g' Dockerfile.test
+
+          docker build -f Dockerfile.test -t claudebox:test .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'claudebox:test'
+          format: 'sarif'
+          output: 'trivy-image.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload image scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-image.sarif'
+          category: 'trivy-image'
+
+      - name: Run Trivy with table output for PR comment
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'claudebox:test'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Fail on HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'claudebox:test'
+          exit-code: 1
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true

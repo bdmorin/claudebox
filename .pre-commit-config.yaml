@@ -41,3 +41,23 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
         args: ['--fix=lf']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  # Security: Secret scanning with detect-secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock.json
+
+  # Security: Trivy for Dockerfile scanning
+  - repo: local
+    hooks:
+      - id: trivy-config
+        name: Trivy Dockerfile Scan
+        entry: bash -c 'if command -v trivy >/dev/null 2>&1; then trivy config templates/Dockerfile.template --severity CRITICAL,HIGH --exit-code 1; else echo "⚠️  Trivy not installed - skipping Dockerfile scan"; fi'
+        language: system
+        pass_filenames: false
+        files: Dockerfile|\.ya?ml$
