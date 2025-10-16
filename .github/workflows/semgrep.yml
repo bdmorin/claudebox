@@ -1,0 +1,96 @@
+name: Semgrep Security Scan
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    # Run daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write  # For GitHub Security tab integration
+  actions: read
+
+jobs:
+  semgrep:
+    name: Scan for Security Issues
+    runs-on: ubuntu-latest
+
+    # Skip on dependabot PRs to avoid noise
+    if: github.actor != 'dependabot[bot]'
+
+    container:
+      image: returntocorp/semgrep
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Run Semgrep with ClaudeBox custom rules
+        run: |
+          semgrep scan \
+            --config=.semgrep/claudebox-rules.yaml \
+            --config=auto \
+            --error \
+            --verbose \
+            --metrics=off \
+            --exclude='test/fixtures/security/' \
+            --exclude='*.bats' \
+            --json \
+            --output=semgrep-results.json
+        continue-on-error: true
+
+      - name: Convert Semgrep JSON to SARIF
+        if: always()
+        run: |
+          if [ -f semgrep-results.json ]; then
+            semgrep scan \
+              --config=.semgrep/claudebox-rules.yaml \
+              --config=auto \
+              --exclude='test/fixtures/security/' \
+              --exclude='*.bats' \
+              --sarif \
+              --output=semgrep.sarif
+          fi
+
+      - name: Upload SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Upload Semgrep results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: |
+            semgrep-results.json
+            semgrep.sarif
+          retention-days: 30
+
+      - name: Check for critical findings
+        if: always()
+        run: |
+          if [ -f semgrep-results.json ]; then
+            ERRORS=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep-results.json)
+            printf "Found %d ERROR-level findings\n" "$ERRORS"
+
+            if [ "$ERRORS" -gt 0 ]; then
+              printf "\nERROR-level findings detected:\n"
+              jq -r '.results[] | select(.extra.severity == "ERROR") | "\(.path):\(.start.line) - \(.extra.message)"' semgrep-results.json
+              exit 1
+            fi
+          fi

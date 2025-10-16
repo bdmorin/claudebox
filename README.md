@@ -403,6 +403,7 @@ Continuous automated security scanning:
 - **ShellCheck**: Static analysis on every commit for bash security issues
 - **Trivy**: Daily container vulnerability scanning (CVEs, misconfigurations, secrets)
 - **TruffleHog**: Weekly secret scanning with credential verification
+- **Semgrep**: Context poisoning detection with custom rules for AI safety
 - **Pre-commit Hooks**: Local security validation before code is committed
 
 ### Supply Chain Security
@@ -431,6 +432,25 @@ Safe coding practices enforced:
 - **No eval with user input**: Strict prohibition on dangerous patterns
 - **Quoted Variables**: All bash variables properly quoted
 - **Template Safety**: Validated substitution in Dockerfiles
+
+### AI Safety & Context Poisoning Prevention
+
+ClaudeBox includes specialized protection against context poisoning attacks:
+
+- **Prompt Injection Detection**: Scans markdown files for malicious AI instructions
+- **Template Injection Prevention**: Validates all template variables for command injection
+- **MCP Configuration Scanning**: Detects dangerous commands in MCP server configs
+- **Hidden Character Detection**: Identifies zero-width and control characters used for obfuscation
+- **Jailbreak Pattern Blocking**: Recognizes common AI jailbreak attempts
+- **Custom Semgrep Rules**: 15+ specialized rules for AI-specific security threats
+
+These protections are especially important for ClaudeBox since it:
+- Loads context from CLAUDE.md files
+- Uses template substitution in Dockerfiles
+- Executes MCP server configurations
+- Operates in environments where AI agents make decisions
+
+All security rules are in `.semgrep/claudebox-rules.yaml` and run automatically on every commit and PR.
 
 ### Network Security
 

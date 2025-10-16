@@ -63,3 +63,15 @@ repos:
         language: system
         pass_filenames: false
         files: Dockerfile|\.ya?ml$
+
+  # Security: Semgrep for context poisoning detection
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.52.0
+    hooks:
+      - id: semgrep
+        name: Semgrep Security Scan
+        args:
+          - '--config=.semgrep/claudebox-rules.yaml'
+          - '--error'
+          - '--skip-unknown-extensions'
+        exclude: ^test/fixtures/

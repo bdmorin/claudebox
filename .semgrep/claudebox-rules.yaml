@@ -1,0 +1,205 @@
+# ClaudeBox Security Rules for Context Poisoning Prevention
+# These rules detect suspicious patterns that could poison AI context
+
+rules:
+  # Detect obvious prompt injection attempts
+  - id: prompt-injection-override
+    pattern-either:
+      - pattern-regex: "(?i)ignore\\s+(previous|all|above)\\s+(instructions|commands|rules)"
+      - pattern-regex: "(?i)disregard\\s+(everything|all|above)"
+      - pattern-regex: "(?i)forget\\s+(everything|previous|all)"
+      - pattern-regex: "(?i)you\\s+are\\s+now\\s+(a|an|the)"
+      - pattern-regex: "(?i)new\\s+instructions\\s*:"
+      - pattern-regex: "(?i)system\\s+prompt\\s*:"
+    message: |
+      Detected potential prompt injection attempt.
+      This pattern commonly appears in context poisoning attacks.
+      Review the context to ensure it's legitimate.
+    languages: [generic]
+    severity: ERROR
+    paths:
+      include:
+        - "*.md"
+        - "templates/*"
+        - ".claude/*"
+        - "profiles/*"
+
+  # Detect template command injection
+  - id: template-command-injection
+    pattern-regex: '\{\{[^}]*[;&|`$()><].*\}\}'
+    message: |
+      Potential command injection in template variable.
+      Template variables should not contain shell metacharacters.
+      Valid: {{VARIABLE}}
+      Invalid: {{VARIABLE; rm -rf /}}
+    languages: [generic]
+    severity: ERROR
+    paths:
+      include:
+        - "templates/*"
+
+  # Detect suspicious commands in MCP configuration
+  - id: malicious-mcp-command
+    pattern-regex: '"command"\s*:\s*"[^"]*(?:rm|dd|mkfs|:[(]|curl[^"]*\|sh|wget[^"]*\|sh|eval|exec\s+sh)"'
+    message: |
+      Potentially dangerous command in MCP configuration.
+      MCP commands should not include destructive operations or pipe to shell.
+    languages: [json]
+    severity: ERROR
+    paths:
+      include:
+        - ".mcp.json"
+        - "**/.mcp.json"
+        - "**/mcp-config.json"
+
+  # Detect base64-encoded or obfuscated content in markdown
+  - id: suspicious-encoded-content
+    pattern-regex: '(?:[A-Za-z0-9+/]{40,}={0,2})|(?:\\x[0-9a-fA-F]{2}){10,}'
+    message: |
+      Detected long base64-encoded or hex-encoded content in markdown.
+      This could be an attempt to hide malicious instructions.
+      Review to ensure the content is legitimate.
+    languages: [generic]
+    severity: WARNING
+    paths:
+      include:
+        - "*.md"
+        - ".claude/*"
+
+  # Detect suspicious script inclusion
+  - id: remote-script-execution
+    pattern-regex: '(?:curl|wget)\s+[^|]*\|\s*(?:sh|bash|zsh)'
+    message: |
+      Detected remote script execution pattern.
+      Downloading and executing remote scripts is a security risk.
+    languages: [bash, sh]
+    severity: ERROR
+
+  # Detect eval with user input
+  - id: eval-user-input
+    pattern-either:
+      - pattern: eval "$..."
+      - pattern: eval "${...}"
+      - pattern-regex: 'eval\s+"?\$\{?[a-zA-Z_]'
+    message: |
+      Using eval with variables is dangerous and can lead to code injection.
+      Consider using safer alternatives.
+    languages: [bash, sh]
+    severity: ERROR
+
+  # Detect jailbreak attempts
+  - id: jailbreak-attempt
+    pattern-regex: '(?i)(jailbreak|DAN|STAN|DUDE|absolute mode|developer mode|god mode)'
+    message: |
+      Detected potential jailbreak keyword.
+      These terms are commonly used to trick AI into bypassing safety guidelines.
+    languages: [generic]
+    severity: WARNING
+    paths:
+      include:
+        - "*.md"
+        - ".claude/*"
+
+  # Detect role manipulation
+  - id: role-manipulation
+    pattern-regex: '(?i)(?:act|behave|pretend|roleplay)\s+(?:as|like)\s+(?:a|an|the)\s+(?:super|root|admin|system)'
+    message: |
+      Detected attempt to manipulate AI role.
+      This could be an attempt to gain elevated privileges or bypass restrictions.
+    languages: [generic]
+    severity: WARNING
+    paths:
+      include:
+        - "*.md"
+        - ".claude/*"
+
+  # Detect hidden unicode characters
+  - id: hidden-unicode-characters
+    pattern-regex: '[\u200B-\u200D\u202A-\u202E\u2060-\u2069\uFEFF]'
+    message: |
+      Detected hidden unicode characters (zero-width, RLO, etc.).
+      These can be used to hide malicious instructions or alter visual representation.
+    languages: [generic]
+    severity: ERROR
+    paths:
+      include:
+        - "*.md"
+        - "*.sh"
+        - "templates/*"
+        - ".claude/*"
+
+  # Detect suspicious regex patterns that could bypass filters
+  - id: regex-bypass-attempt
+    pattern-regex: '\[([a-zA-Z])\1*\]|\\[bBdDsSwW]\{|(?:\\[xX][0-9a-fA-F]{2}){3,}'
+    message: |
+      Detected suspicious regex pattern that could be used to bypass filters.
+      Character class repetition or excessive hex encoding may indicate obfuscation.
+    languages: [generic]
+    severity: WARNING
+    paths:
+      include:
+        - "*.md"
+        - ".claude/*"
+
+  # Detect HTML/JavaScript in markdown (XSS potential)
+  - id: html-script-in-markdown
+    pattern-regex: '<script[^>]*>|<iframe[^>]*>|javascript:|data:text/html|on\w+\s*=\s*["'']'
+    message: |
+      Detected HTML/JavaScript in markdown file.
+      While markdown may legitimately contain HTML, scripts and event handlers
+      could be used for XSS attacks if the markdown is rendered in a web context.
+    languages: [generic]
+    severity: WARNING
+    paths:
+      include:
+        - "*.md"
+
+  # Detect attempts to access environment variables or secrets
+  - id: secret-access-attempt
+    pattern-regex: '(?i)(?:ANTHROPIC_API_KEY|API_KEY|SECRET|PASSWORD|TOKEN|AWS_SECRET|GITHUB_TOKEN|OPENAI_API_KEY)'
+    message: |
+      Detected reference to sensitive environment variables.
+      Ensure this is not an attempt to exfiltrate secrets.
+    languages: [generic]
+    severity: WARNING
+    paths:
+      include:
+        - "*.md"
+        - ".claude/*"
+      exclude:
+        - "SECURITY.md"
+        - ".env.example"
+        - "test/fixtures/**"
+
+  # Detect file path traversal attempts
+  - id: path-traversal-attempt
+    pattern-regex: '(?:\.\./){2,}|(?:/\.\.){2,}|\\\.\\\.[\\/]'
+    message: |
+      Detected potential path traversal pattern.
+      This could be an attempt to access files outside the intended directory.
+    languages: [generic]
+    severity: ERROR
+    paths:
+      include:
+        - "*.md"
+        - "*.json"
+        - "*.sh"
+        - ".claude/*"
+
+  # Detect chmod 777 or dangerous permissions
+  - id: dangerous-permissions
+    pattern-regex: 'chmod\s+(?:777|776|666|775|o\+w)'
+    message: |
+      Detected overly permissive chmod command.
+      World-writable permissions (777, 666) are a security risk.
+    languages: [bash, sh]
+    severity: ERROR
+
+  # Detect attempts to modify git config
+  - id: git-config-modification
+    pattern-regex: 'git\s+config\s+--(?:global|system)|core\.hooksPath|core\.gitProxy'
+    message: |
+      Detected git config modification.
+      Modifying git config, especially hooks, can introduce security vulnerabilities.
+    languages: [bash, sh]
+    severity: WARNING
