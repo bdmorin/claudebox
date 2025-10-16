@@ -1,0 +1,31 @@
+# Test Dockerfile with intentional vulnerabilities
+# This should trigger Trivy security warnings
+
+FROM debian:bookworm
+
+# CIS-DI-0001: Running as root user
+USER root
+
+# CIS-DI-0005: Using latest tag (bad practice)
+FROM nginx:latest
+
+# CIS-DI-0010: Unnecessary privileges
+RUN chmod 777 /tmp
+
+# No health check defined (CIS-DI-0006)
+# Missing: HEALTHCHECK CMD curl --fail http://localhost/ || exit 1
+
+# Exposed unnecessary port
+EXPOSE 22
+
+# Installing with --no-install-recommends missing
+RUN apt-get update && apt-get install -y curl
+
+# Not cleaning apt cache
+# Missing: && rm -rf /var/lib/apt/lists/*
+
+# Hardcoded credentials (should be caught by secret scanner)
+ENV API_KEY=sk-ant-test-1234567890abcdef  # pragma: allowlist secret
+ENV PASSWORD=admin123  # pragma: allowlist secret
+
+CMD ["/bin/bash"]
