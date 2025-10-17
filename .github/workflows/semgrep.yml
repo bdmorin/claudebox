@@ -41,10 +41,8 @@ jobs:
         run: |
           semgrep scan \
             --config=.semgrep/claudebox-rules.yaml \
-            --config=auto \
             --error \
             --verbose \
-            --metrics=off \
             --exclude='test/fixtures/security/' \
             --exclude='*.bats' \
             --json \
@@ -57,7 +55,6 @@ jobs:
           if [ -f semgrep-results.json ]; then
             semgrep scan \
               --config=.semgrep/claudebox-rules.yaml \
-              --config=auto \
               --exclude='test/fixtures/security/' \
               --exclude='*.bats' \
               --sarif \
