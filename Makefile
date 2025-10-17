@@ -1,4 +1,4 @@
-.PHONY: help shellcheck test test-bats test-security test-all clean install-hooks
+.PHONY: help shellcheck test test-bats test-security test-poison test-all clean install-hooks
 
 # Default target
 .DEFAULT_GOAL := help
@@ -57,6 +57,18 @@ test-security: ## Run security scanning tests only
 	fi
 	@bats test/security_scanning.bats || exit 1
 	@echo "$(GREEN)✓ Security tests passed!$(NC)"
+
+test-poison: ## Run poison detection tests
+	@echo "$(CYAN)Running poison detection tests...$(NC)"
+	@if ! command -v bats >/dev/null 2>&1; then \
+		echo "$(RED)ERROR: bats not installed$(NC)"; \
+		echo "Install with:"; \
+		echo "  macOS: brew install bats-core"; \
+		echo "  Ubuntu/Debian: apt-get install bats"; \
+		exit 1; \
+	fi
+	@bats test/poison_detection.bats || exit 1
+	@echo "$(GREEN)✓ Poison detection tests passed!$(NC)"
 
 test: shellcheck ## Run shellcheck only (fast)
 	@echo "$(GREEN)✓ ShellCheck passed!$(NC)"

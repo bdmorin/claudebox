@@ -113,12 +113,13 @@ rules:
         - "*.md"
         - ".claude/*"
 
-  # Detect hidden unicode characters
+  # Detect hidden unicode characters - using literal characters for PCRE compatibility
   - id: hidden-unicode-characters
-    pattern-regex: '[\u200B-\u200D\u202A-\u202E\u2060-\u2069\uFEFF]'
+    pattern-regex: '​|‌|‍|‎|‏|‐|‑|‒|⁠|⁡|⁢|⁣|⁤|⁥|⁦|⁧|⁨|⁩|﻿'
     message: |
       Detected hidden unicode characters (zero-width, RLO, etc.).
       These can be used to hide malicious instructions or alter visual representation.
+      Found characters: zero-width space, zero-width joiner, LTR/RTL marks, word joiners, etc.
     languages: [generic]
     severity: ERROR
     paths:
