@@ -55,7 +55,11 @@ set_md5_command() {
 md5_file() {
     local file="$1"
     if [[ -f "$file" ]]; then
-        $MD5_CMD "$file" 2>/dev/null | eval $MD5_EXTRACT
+        if [[ "$MD5_EXTRACT" == "cat" ]]; then
+            $MD5_CMD "$file" 2>/dev/null
+        else
+            $MD5_CMD "$file" 2>/dev/null | cut -d" " -f1
+        fi
     else
         echo ""
     fi
@@ -64,7 +68,11 @@ md5_file() {
 # Calculate MD5 hash of a string (cross-platform)
 md5_string() {
     local string="$1"
-    echo -n "$string" | $MD5_CMD 2>/dev/null | eval $MD5_EXTRACT
+    if [[ "$MD5_EXTRACT" == "cat" ]]; then
+        echo -n "$string" | $MD5_CMD 2>/dev/null
+    else
+        echo -n "$string" | $MD5_CMD 2>/dev/null | cut -d" " -f1
+    fi
 }
 
 # Initialize MD5 command on library load

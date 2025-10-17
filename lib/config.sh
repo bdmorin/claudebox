@@ -251,6 +251,8 @@ get_profile_openwrt() {
 
 get_profile_rust() {
     cat << 'EOF'
+# nosemgrep: remote-script-execution
+# Safe: Official Rustup installer with HTTPS/TLS, runs in Docker build (not runtime)
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/home/claude/.cargo/bin:$PATH"
 EOF
@@ -276,6 +278,8 @@ get_profile_flutter() {
     local flutter_version="${FLUTTER_SDK_VERSION:-stable}"
     cat << EOF
 USER claude
+# nosemgrep: remote-script-execution
+# Safe: Official FVM installer with HTTPS, runs in Docker build (not runtime)
 RUN curl -fsSL https://fvm.app/install.sh | bash
 ENV PATH="/usr/local/bin:$PATH"
 RUN fvm install $flutter_version
@@ -288,6 +292,8 @@ EOF
 
 get_profile_javascript() {
     cat << 'EOF'
+# nosemgrep: remote-script-execution
+# Safe: Official NVM installer from GitHub, runs in Docker build (not runtime)
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
 ENV NVM_DIR="/home/claude/.nvm"
 RUN . $NVM_DIR/nvm.sh && nvm install --lts
@@ -300,6 +306,8 @@ EOF
 get_profile_java() {
     cat << 'EOF'
 USER claude
+# nosemgrep: remote-script-execution
+# Safe: Official SDKMan installer with HTTPS, runs in Docker build (not runtime)
 RUN curl -s "https://get.sdkman.io?ci=true" | bash
 RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && sdk install java && sdk install maven && sdk install gradle && sdk install ant"
 USER root

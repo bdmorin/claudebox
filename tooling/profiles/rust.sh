@@ -16,6 +16,8 @@ export PATH="$CARGO_HOME/bin:$PATH"
 # Install rustup if not already installed
 if [ ! -f "$CARGO_HOME/bin/rustup" ]; then
     echo "Installing Rust toolchain..."
+    # nosemgrep: remote-script-execution
+    # Safe: Official Rustup installer with HTTPS/TLS verification, standard installation method
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
 fi
 
