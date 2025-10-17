@@ -116,6 +116,7 @@ show_help() {
   shell                           Open transient shell
   shell admin                     Open admin shell (sudo enabled)
   allowlist                       Show/edit firewall allowlist
+  show-context                    Audit context files & security status
   info                            Show comprehensive project info
   clean                           Menu of cleanup tasks
   create                          Create new authenticated container slot
@@ -225,6 +226,7 @@ show_full_help() {
   shell                           Open transient shell\
   shell admin                     Open admin shell (sudo enabled)\
   allowlist                       Show/edit firewall allowlist\
+  show-context                    Audit context files & security status\
   info                            Show comprehensive project info\
   clean                           Menu of cleanup tasks\
   create                          Create new authenticated container slot\
@@ -283,6 +285,7 @@ dispatch_command() {
         projects)         _cmd_projects "$@" ;;
         allowlist)        _cmd_allowlist "$@" ;;
         info)             _cmd_info "$@" ;;
+        show-context)     _cmd_show_context "$@" ;;
         
         # Clean commands
         clean)            _cmd_clean "$@" ;;

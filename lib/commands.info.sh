@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Info Commands - Information display
 # ============================================================================
-# Commands: info, projects, allowlist
+# Commands: info, projects, allowlist, show-context
 # Shows system, project, and configuration information
 
 _cmd_projects() {
@@ -227,4 +227,153 @@ _cmd_info() {
     exit 0
 }
 
-export -f _cmd_projects _cmd_allowlist _cmd_info
+_cmd_show_context() {
+    cecho "╔═══════════════════════════════════════════════════════════════════╗" "$CYAN"
+    cecho "║           ClaudeBox Context & Template Security Audit            ║" "$CYAN"
+    cecho "╚═══════════════════════════════════════════════════════════════════╝" "$CYAN"
+    echo
+
+    cecho "🔍 Context Sources" "$WHITE"
+    echo "   ClaudeBox loads context from these locations:"
+    echo
+
+    # Global CLAUDE.md
+    if [[ -f "$HOME/.claude/CLAUDE.md" ]]; then
+        local size=$(du -h "$HOME/.claude/CLAUDE.md" | cut -f1)
+        local lines=$(wc -l < "$HOME/.claude/CLAUDE.md")
+        printf "   ${GREEN}✓${NC} Global:  %s (%s, %d lines)\n" "$HOME/.claude/CLAUDE.md" "$size" "$lines"
+    else
+        printf "   ${YELLOW}✗${NC} Global:  %s (not found)\n" "$HOME/.claude/CLAUDE.md"
+    fi
+
+    # Project CLAUDE.md
+    if [[ -f "$PROJECT_DIR/CLAUDE.md" ]]; then
+        local size=$(du -h "$PROJECT_DIR/CLAUDE.md" | cut -f1)
+        local lines=$(wc -l < "$PROJECT_DIR/CLAUDE.md")
+        printf "   ${GREEN}✓${NC} Project: %s (%s, %d lines)\n" "$PROJECT_DIR/CLAUDE.md" "$size" "$lines"
+    else
+        printf "   ${YELLOW}✗${NC} Project: %s (not found)\n" "$PROJECT_DIR/CLAUDE.md"
+    fi
+    echo
+
+    # MCP Configuration
+    cecho "🔌 MCP Server Configuration" "$WHITE"
+    local found_mcp=false
+    if [[ -f "$HOME/.claude/.mcp.json" ]]; then
+        printf "   ${GREEN}✓${NC} Global:  %s\n" "$HOME/.claude/.mcp.json"
+        found_mcp=true
+    fi
+    if [[ -f "$PROJECT_DIR/.mcp.json" ]]; then
+        printf "   ${GREEN}✓${NC} Project: %s\n" "$PROJECT_DIR/.mcp.json"
+        found_mcp=true
+    fi
+    if [[ "$found_mcp" == "false" ]]; then
+        echo "   No MCP configurations found"
+    fi
+    echo
+
+    # Dockerfile Templates
+    cecho "📝 Docker Templates" "$WHITE"
+    local template_dir="$SCRIPT_DIR/build"
+    if [[ -f "$template_dir/Dockerfile" ]]; then
+        local lines=$(wc -l < "$template_dir/Dockerfile" 2>/dev/null || echo "0")
+        printf "   ${GREEN}✓${NC} Base:    %s (%d lines)\n" "$template_dir/Dockerfile" "$lines"
+    fi
+    if [[ -f "$template_dir/Dockerfile.project" ]]; then
+        local lines=$(wc -l < "$template_dir/Dockerfile.project" 2>/dev/null || echo "0")
+        printf "   ${GREEN}✓${NC} Project: %s (%d lines)\n" "$template_dir/Dockerfile.project" "$lines"
+    fi
+    echo
+
+    # Custom Commands
+    cecho "⚙️  Custom Commands" "$WHITE"
+    local cmd_count=0
+    if [[ -d "$HOME/.claude/commands" ]]; then
+        cmd_count=$(ls -1 "$HOME/.claude/commands"/*.md 2>/dev/null | wc -l)
+    fi
+    local project_cmd_count=0
+    if [[ -e "$PROJECT_PARENT_DIR/commands" ]]; then
+        project_cmd_count=$(ls -1 "$PROJECT_PARENT_DIR/commands"/*.md 2>/dev/null | wc -l)
+    fi
+
+    if [[ $cmd_count -gt 0 ]] || [[ $project_cmd_count -gt 0 ]]; then
+        printf "   Host:    %d command(s) in ~/.claude/commands/\n" "$cmd_count"
+        printf "   Project: %d command(s) in project/commands/\n" "$project_cmd_count"
+    else
+        echo "   No custom commands found"
+    fi
+    echo
+
+    # Security Scanning Status
+    cecho "🔒 Security Scanning" "$WHITE"
+
+    # Check for Semgrep
+    if command -v semgrep >/dev/null 2>&1; then
+        printf "   ${GREEN}✓${NC} Semgrep: Installed (context poisoning detection)\n"
+
+        # Run Semgrep scan on context files
+        local scan_files=()
+        [[ -f "$HOME/.claude/CLAUDE.md" ]] && scan_files+=("$HOME/.claude/CLAUDE.md")
+        [[ -f "$PROJECT_DIR/CLAUDE.md" ]] && scan_files+=("$PROJECT_DIR/CLAUDE.md")
+        [[ -f "$HOME/.claude/.mcp.json" ]] && scan_files+=("$HOME/.claude/.mcp.json")
+        [[ -f "$PROJECT_DIR/.mcp.json" ]] && scan_files+=("$PROJECT_DIR/.mcp.json")
+
+        if [[ ${#scan_files[@]} -gt 0 ]]; then
+            echo "   Running scan on context files..."
+
+            # Run semgrep
+            local scan_result=0
+            if semgrep scan \
+                --config=.semgrep/claudebox-rules.yaml \
+                --quiet \
+                "${scan_files[@]}" >/dev/null 2>&1; then
+                scan_result=$?
+            else
+                scan_result=$?
+            fi
+
+            if [[ $scan_result -eq 0 ]]; then
+                printf "   ${GREEN}✓${NC} No security issues detected\n"
+            else
+                printf "   ${YELLOW}⚠${NC}  Security issues found - run 'semgrep scan --config=.semgrep/claudebox-rules.yaml' for details\n"
+            fi
+        fi
+    else
+        printf "   ${YELLOW}✗${NC} Semgrep: Not installed\n"
+        echo "             Install: pip install semgrep"
+    fi
+
+    # Check for TruffleHog
+    if command -v trufflehog >/dev/null 2>&1; then
+        printf "   ${GREEN}✓${NC} TruffleHog: Installed (secret detection)\n"
+    else
+        printf "   ${YELLOW}✗${NC} TruffleHog: Not installed\n"
+    fi
+
+    # Check for detect-secrets
+    if command -v detect-secrets >/dev/null 2>&1; then
+        printf "   ${GREEN}✓${NC} detect-secrets: Installed\n"
+    else
+        printf "   ${YELLOW}✗${NC} detect-secrets: Not installed\n"
+    fi
+    echo
+
+    # Security Best Practices
+    cecho "💡 Security Best Practices" "$WHITE"
+    echo "   • Review CLAUDE.md files for suspicious instructions"
+    echo "   • Verify MCP server commands don't execute untrusted code"
+    echo "   • Check for hidden unicode characters in context files"
+    echo "   • Run security scans regularly: 'semgrep scan --config=.semgrep/claudebox-rules.yaml'"
+    echo "   • Inspect Docker templates before building: '$template_dir/Dockerfile'"
+    echo
+
+    cecho "📚 More Information" "$WHITE"
+    echo "   Security Policy: https://github.com/bdmorin/claudebox/blob/main/SECURITY.md"
+    echo "   Semgrep Rules:   .semgrep/claudebox-rules.yaml"
+    echo "   Pre-commit:      .pre-commit-config.yaml"
+    echo
+
+    exit 0
+}
+
+export -f _cmd_projects _cmd_allowlist _cmd_info _cmd_show_context
