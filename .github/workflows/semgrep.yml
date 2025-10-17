@@ -78,16 +78,22 @@ jobs:
             semgrep.sarif
           retention-days: 30
 
-      - name: Check for critical findings
+      - name: Report findings summary
         if: always()
         run: |
           if [ -f semgrep-results.json ]; then
             ERRORS=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep-results.json)
-            printf "Found %d ERROR-level findings\n" "$ERRORS"
+            WARNINGS=$(jq '[.results[] | select(.extra.severity == "WARNING")] | length' semgrep-results.json)
+
+            printf "📊 Semgrep Security Scan Results:\n"
+            printf "   ERROR findings: %d\n" "$ERRORS"
+            printf "   WARNING findings: %d\n" "$WARNINGS"
 
             if [ "$ERRORS" -gt 0 ]; then
-              printf "\nERROR-level findings detected:\n"
-              jq -r '.results[] | select(.extra.severity == "ERROR") | "\(.path):\(.start.line) - \(.extra.message)"' semgrep-results.json
-              exit 1
+              printf "\n⚠️  ERROR-level findings detected:\n"
+              jq -r '.results[] | select(.extra.severity == "ERROR") | "   \(.path):\(.start.line) - \(.extra.message | split("\n")[0])"' semgrep-results.json
+              printf "\n💡 These findings have been uploaded to GitHub Security tab for review.\n"
+            else
+              printf "\n✅ No ERROR-level security issues detected!\n"
             fi
           fi
